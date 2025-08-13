@@ -8,6 +8,7 @@ import { MovieModule } from './movie/movie.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validationSchema } from './config/validation.schema';
+import { RatingsModule } from './ratings/ratings.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -35,6 +36,7 @@ import { validationSchema } from './config/validation.schema';
 
     AuthenticationModule,
     MovieModule,
+    RatingsModule
   ],
 
   controllers: [AppController],

@@ -10,6 +10,7 @@ import {
 } from './dto/movie.dto';
 import { MovieDocument } from './entities/movie.entity';
 import { TmdbService } from '../tmdb/services/tmdb.service';
+import { RatingsService } from '../ratings/ratings.service';
 
 @Injectable()
 export class MovieService {
@@ -19,6 +20,7 @@ export class MovieService {
     private readonly movieRepository: MovieRepository,
     private readonly tmdbService: TmdbService,
     private readonly redisService: RedisService,
+    private readonly ratingsService: RatingsService,
   ) {}
 
   async syncPopularMovies(): Promise<void> {
@@ -70,9 +72,11 @@ export class MovieService {
 
     const cachedResult = await this.redisService.get<PaginatedMovieResponseDto>(cacheKey);
     if (cachedResult) {
+      this.logger.debug(`Cache hit for movie listing with key: ${cacheKey}`);
       return cachedResult;
     }
 
+    this.logger.debug(`Cache miss for movie listing with key: ${cacheKey}, fetching from database`);
     let result;
 
     if (search) {
@@ -84,6 +88,7 @@ export class MovieService {
       result = await this.movieRepository.findAll(page, limit);
     }
 
+    // Properly await all the mapped movie promises
     const mappedMovies = await Promise.all(result.data.map(movie => this.mapMovieToResponseDto(movie)));
     
     const response: PaginatedMovieResponseDto = {
@@ -93,7 +98,13 @@ export class MovieService {
       limit: result.limit,
     };
 
-    await this.redisService.set(cacheKey, response, 300); 
+    // Only cache if we have valid data
+    if (response && response.data && response.data.length > 0) {
+      await this.redisService.set(cacheKey, response, 300); 
+      this.logger.debug(`Cached movie listing with key: ${cacheKey}`);
+    } else {
+      this.logger.warn(`Not caching invalid movie listing response for key: ${cacheKey}`);
+    }
 
     return response;
   }
@@ -103,17 +114,26 @@ export class MovieService {
 
     const cachedResult = await this.redisService.get<MovieResponseDto>(cacheKey);
     if (cachedResult) {
+      this.logger.debug(`Cache hit for movie ${id}`);
       return cachedResult;
     }
 
+    this.logger.debug(`Cache miss for movie ${id}, fetching from database`);
     const movie = await this.movieRepository.findById(id);
     if (!movie) {
       throw new NotFoundException(`Movie with ID ${id} not found`);
     }
 
-    const response = this.mapMovieToResponseDto(movie, userId);
+    // Properly await the async response
+    const response = await this.mapMovieToResponseDto(movie, userId);
 
-    await this.redisService.set(cacheKey, response, 300); 
+    // Ensure we're caching a complete object
+    if (response && response.id) {
+      await this.redisService.set(cacheKey, response, 300);
+      this.logger.debug(`Cached movie ${id} response`);
+    } else {
+      this.logger.warn(`Not caching invalid movie response for ${id}`);
+    }
 
     return response;
   }
@@ -158,8 +178,12 @@ export class MovieService {
     movie: MovieDocument,
     userId?: string,
   ): Promise<MovieResponseDto> {
+    // Get the average rating from our platform's ratings
+    const movieId = movie._id.toString();
+    const { average, count } = await this.ratingsService.getMovieAverageRating(movieId);
+    
     const response: MovieResponseDto = {
-      id: movie._id.toString(),
+      id: movieId,
       tmdbId: movie.tmdbId,
       title: movie.title,
       overview: movie.overview,
@@ -168,11 +192,9 @@ export class MovieService {
       releaseDate: movie.releaseDate,
       genres: movie.genres,
       popularity: movie.popularity,
-      voteCount: movie.voteCount,
-      voteAverage: movie.voteAverage,
+      voteCount: count || movie.voteCount, // Use our rating count if available, otherwise use TMDB count
+      voteAverage: count > 0 ? average : movie.voteAverage, // Use our average if we have ratings, otherwise use TMDB average
       adult: movie.adult,
-      isInWatchlist: false,
-      isFavorite: false,
     };
 
     return response;

@@ -156,12 +156,6 @@ export class MovieResponseDto {
 
   @ApiProperty({ description: 'Is adult content' })
   adult: boolean;
-
-  @ApiProperty({ description: "Is in user's watchlist" })
-  isInWatchlist: boolean;
-
-  @ApiProperty({ description: "Is user's favorite" })
-  isFavorite: boolean;
 }
 
 export class PaginatedMovieResponseDto {

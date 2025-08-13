@@ -6,6 +6,7 @@ import { NotFoundException } from '@nestjs/common';
 import { MovieFilterDto } from './dto/movie.dto';
 import { TmdbService } from '../tmdb/services/tmdb.service';
 import { RedisService } from '../cache/redis.service';
+import { RatingsService } from '../ratings/ratings.service';
 
 jest.mock('../tmdb/services/tmdb.service');
 jest.mock('../cache/redis.service');
@@ -16,6 +17,7 @@ describe('MovieService', () => {
   let tmdbService: TmdbService;
   let cacheManager;
   let redisService;
+  let ratingsService;
 
   const mockMovie = {
     _id: { toString: () => 'movie-id-1' },
@@ -66,6 +68,10 @@ describe('MovieService', () => {
     deletePattern: jest.fn(),
   };
 
+  const mockRatingsService = {
+    getMovieAverageRating: jest.fn().mockResolvedValue({ average: 7.5, count: 50 }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -86,6 +92,10 @@ describe('MovieService', () => {
           provide: RedisService,
           useValue: mockRedisService,
         },
+        {
+          provide: RatingsService,
+          useValue: mockRatingsService,
+        },
       ],
     }).compile();
 
@@ -94,6 +104,7 @@ describe('MovieService', () => {
     tmdbService = module.get<TmdbService>(TmdbService);
     cacheManager = module.get(CACHE_MANAGER);
     redisService = module.get(RedisService);
+    ratingsService = module.get<RatingsService>(RatingsService);
 
     jest.clearAllMocks();
   });
@@ -351,15 +362,26 @@ describe('MovieService', () => {
 
       const result = await service.findOne('movie-id-1');
 
-      expect(result).toEqual(
-        expect.objectContaining({
-          id: 'movie-id-1',
-          title: 'Test Movie',
-          tmdbId: 123,
-          isInWatchlist: false,
-          isFavorite: false,
-        }),
-      );
+      // Check that the main properties from the movie are correctly mapped
+      expect(result).toEqual(expect.objectContaining({
+        id: 'movie-id-1',
+        title: 'Test Movie',
+        tmdbId: 123,
+        // Using values from the ratings service mock
+        voteAverage: 7.5,  // from mockRatingsService
+        voteCount: 50,     // from mockRatingsService
+        // Other expected fields from mockMovie
+        overview: 'Test Overview',
+        posterPath: '/poster.jpg',
+        backdropPath: '/backdrop.jpg',
+        releaseDate: expect.any(Date), // just check it's a date
+        genres: [{ id: 1, name: 'Action' }],
+        popularity: 100,
+        adult: false
+      }));
+
+      // Verify the ratings service was called with the correct movie ID
+      expect(mockRatingsService.getMovieAverageRating).toHaveBeenCalledWith('movie-id-1');
     });
   });
 });

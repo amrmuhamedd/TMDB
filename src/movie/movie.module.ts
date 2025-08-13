@@ -6,6 +6,7 @@ import { MovieController } from './movie.controller';
 import { MovieService } from './movie.service';
 import { MovieRepository } from './repositories/movie.repository';
 import { TmdbModule } from '../tmdb/tmdb.module';
+import { RatingsModule } from '../ratings/ratings.module';
 
 
 @Module({
@@ -13,6 +14,7 @@ import { TmdbModule } from '../tmdb/tmdb.module';
     MongooseModule.forFeature([{ name: Movie.name, schema: MovieSchema }]),
     TmdbModule,
     RedisModule,
+    RatingsModule,
   ],
   controllers: [MovieController],
   providers: [MovieService, MovieRepository],
