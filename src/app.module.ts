@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthenticationModule } from './authentication/authentication.module';
+import { MovieModule } from './movie/movie.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validationSchema } from './config/validation.schema';
@@ -33,6 +34,7 @@ import { validationSchema } from './config/validation.schema';
     }),
 
     AuthenticationModule,
+    MovieModule,
   ],
 
   controllers: [AppController],

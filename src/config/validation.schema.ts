@@ -5,4 +5,5 @@ export const validationSchema = Joi.object({
   PORT: Joi.number().default(3000),
   JWT_SECRET: Joi.string().required(),
   RT_SECRET: Joi.string().required(),
+  TMDB_API_KEY: Joi.string().required(),
 });
