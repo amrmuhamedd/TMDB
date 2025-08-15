@@ -156,6 +156,18 @@ export class MovieResponseDto {
 
   @ApiProperty({ description: 'Is adult content' })
   adult: boolean;
+
+  @ApiProperty({ description: 'Average user rating from application users' })
+  userRatingAverage?: number;
+
+  @ApiProperty({ description: 'Number of user ratings from application users' })
+  userRatingsCount?: number;
+
+  @ApiProperty({ description: 'Whether the movie is in user watchlist' })
+  isInWatchlist?: boolean;
+
+  @ApiProperty({ description: 'Whether the movie is in user favorites' })
+  isFavorite?: boolean;
 }
 
 export class PaginatedMovieResponseDto {

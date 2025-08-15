@@ -9,6 +9,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { validationSchema } from './config/validation.schema';
 import { RatingsModule } from './ratings/ratings.module';
+import { WatchlistModule } from './watchlist/watchlist.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -36,7 +37,8 @@ import { RatingsModule } from './ratings/ratings.module';
 
     AuthenticationModule,
     MovieModule,
-    RatingsModule
+    RatingsModule,
+    WatchlistModule,
   ],
 
   controllers: [AppController],
