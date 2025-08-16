@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # MongoDB service
+  mongodb:
+    image: mongo:7.0
+    container_name: tmdb-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: tmdb
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - tmdb-network
+
+  # Redis service
+  redis:
+    image: redis:7.2-alpine
+    container_name: tmdb-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tmdb-network
+
+  # Node.js backend service
+  backend:
+    build: .
+    container_name: tmdb-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: mongodb://admin:password123@mongodb:27017/tmdb?authSource=admin
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      RT_SECRET: your-super-secret-rt-key-change-in-production
+      TMDB_API_KEY: your-tmdb-api-key-here
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - tmdb-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  tmdb-network:
+    driver: bridge
